@@ -26,14 +26,14 @@ contract SimpleBank {
     //
     
     /* Add an argument for this event, an accountAddress */
-    event LogEnrolled(address);
+    event LogEnrolled(address accountAddress);
 
     /* Add 2 arguments for this event, an accountAddress and an amount */
-    event LogDepositMade(address, uint);
+    event LogDepositMade(address accountAddress, uint amount);
 
     /* Create an event called LogWithdrawal */
     /* Add 3 arguments for this event, an accountAddress, withdrawAmount and a newBalance */
-    event LogWithdrawal(address, uint, uint);
+    event LogWithdrawal(address accountAddress, uint withdrawAmount, uint newBalance);
 
     //
     // Functions
@@ -59,6 +59,7 @@ contract SimpleBank {
     // Emit the appropriate event
     function enroll() public returns (bool){
         enrolled[msg.sender] = true;
+        emit LogEnrolled(msg.sender);
         return enrolled[msg.sender];
     }
 
@@ -70,7 +71,9 @@ contract SimpleBank {
     function deposit() public payable returns (uint) {
         /* Add the amount to the user's balance, call the event associated with a deposit,
           then return the balance of the user */
-        balances[msg.sender] += 
+        balances[msg.sender] += msg.value;
+        emit LogDepositMade(msg.sender, msg.value);
+        return balance();
     }
 
     /// @notice Withdraw ether from bank
@@ -83,6 +86,12 @@ contract SimpleBank {
            Subtract the amount from the sender's balance, and try to send that amount of ether
            to the user attempting to withdraw. 
            return the user's balance.*/
+
+        require(withdrawAmount <= balance(), "You don't have sufficient balance in your account");
+        balances[msg.sender] -= withdrawAmount;
+        msg.sender.transfer(withdrawAmount);
+        emit LogWithdrawal(msg.sender, withdrawAmount, balance());
+        return balance();
     }
 
     // Fallback function - Called if other functions don't match call or
@@ -91,6 +100,6 @@ contract SimpleBank {
     // Added so ether sent to this contract is reverted if the contract fails
     // otherwise, the sender's money is transferred to contract
     function() external {
-        revert();
+        revert("Oops! Something went wrong.");
     }
 }
